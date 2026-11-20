@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["crates/*"]
+members = [
+    "crates/motion-core",
+    "crates/motion-cpu",
+    "crates/motion-nn",
+    "crates/motion-bricks",
+    "crates/motion-cli",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +17,8 @@ repository = "https://github.com/zaitrarrio/motion-rs"
 [workspace.dependencies]
 motion-core = { path = "crates/motion-core" }
 motion-cpu = { path = "crates/motion-cpu" }
+motion-nn = { path = "crates/motion-nn" }
+motion-check = { path = "crates/motion-check" }
 motion-kimodo = { path = "crates/motion-kimodo" }
 motion-bricks = { path = "crates/motion-bricks" }
 motion-text = { path = "crates/motion-text" }

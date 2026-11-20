@@ -1,0 +1,19 @@
+[package]
+name = "motion-bricks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "MotionBricks (NVlabs) in Rust: root module, masked pose transformer and VQ-VAE decoder for the SOMA and Unitree G1 rigs."
+
+[dependencies]
+motion-core.workspace = true
+motion-nn.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+motion-cpu.workspace = true
+
+[lints]
+workspace = true
