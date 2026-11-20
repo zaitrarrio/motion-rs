@@ -1,0 +1,20 @@
+[package]
+name = "motion-wgpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WebGPU backend of motion-rs: one WGSL kernel per op of motion_core::Backend, f32 throughout."
+
+[dependencies]
+motion-core.workspace = true
+bytemuck.workspace = true
+pollster.workspace = true
+wgpu.workspace = true
+
+[dev-dependencies]
+motion-check = { path = "../motion-check" }
+motion-cpu.workspace = true
+
+[lints]
+workspace = true

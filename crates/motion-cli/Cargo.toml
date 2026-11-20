@@ -1,0 +1,23 @@
+[package]
+name = "motion-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The `motion` command: Kimodo and MotionBricks inference, conformance checks, text embeddings, downloads."
+
+[[bin]]
+name = "motion"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+motion-core.workspace = true
+motion-cpu.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ureq = { version = "2", features = ["json"] }
+
+[lints]
+workspace = true
