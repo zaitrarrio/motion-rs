@@ -1,0 +1,16 @@
+[package]
+name = "motion-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Op vocabulary, checkpoint access, geometry and skeletons shared by the motion-rs models."
+
+[dependencies]
+half.workspace = true
+memmap2.workspace = true
+safetensors.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+

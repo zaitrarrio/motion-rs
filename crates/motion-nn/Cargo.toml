@@ -1,0 +1,16 @@
+[package]
+name = "motion-nn"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "PyTorch-shaped building blocks (Linear, LayerNorm, post-norm TransformerEncoderLayer, MLP) over the motion-rs Backend."
+
+[dependencies]
+motion-core.workspace = true
+
+[dev-dependencies]
+motion-cpu.workspace = true
+
+[lints]
+workspace = true
