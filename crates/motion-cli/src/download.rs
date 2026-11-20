@@ -24,7 +24,8 @@ pub fn resolve_repo(name: &str) -> String {
 
 fn agent() -> ureq::Agent {
     let mut b = ureq::AgentBuilder::new().timeout_connect(std::time::Duration::from_secs(30));
-    if let Ok(p) = ureq::Proxy::try_from_env() {
+    let proxy = ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"].iter().find_map(|k| std::env::var(k).ok());
+    if let Some(p) = proxy.and_then(|p| ureq::Proxy::new(p).ok()) {
         b = b.proxy(p);
     }
     b.build()

@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "The `motion` command: Kimodo and MotionBricks inference, conformance checks, text embeddings, downloads."
+description = "The `motion` command: Kimodo and MotionBricks inference, the Motion Studio, conformance checks, text embeddings, downloads."
 
 [[bin]]
 name = "motion"
@@ -15,8 +15,12 @@ anyhow.workspace = true
 clap.workspace = true
 motion-core.workspace = true
 motion-cpu.workspace = true
+motion-kimodo.workspace = true
+motion-bricks.workspace = true
+motion-text.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tiny_http = "0.12"
 ureq = { version = "2", features = ["json"] }
 
 [lints]

@@ -10,5 +10,6 @@ description = "The CPU reference backend of motion-rs: plain f32, the contract e
 motion-core.workspace = true
 rayon.workspace = true
 
-[lints]
-workspace = true
+[lints.rust]
+# One `unsafe` block: the GEMM tasks write disjoint output elements through a shared pointer.
+unsafe_code = "deny"

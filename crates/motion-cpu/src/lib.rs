@@ -25,7 +25,7 @@ pub struct CpuWeight {
     pub cols: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Cpu;
 
 pub fn gelu_tanh(x: f32) -> f32 {
@@ -104,6 +104,72 @@ fn dot(a: &[f32], b: &[f32]) -> f32 {
     s
 }
 
+/// Rows per register tile of [`gemm`]: each weight row is read once per tile.
+const MR: usize = 4;
+/// Output columns per parallel task.
+const NC: usize = 64;
+
+/// `y[i, c] = act(Σ_k x[i, k]·w[c, k] + b[c])`: tiles of [`MR`] rows ×
+/// [`NC`] columns run in parallel; inside a tile every weight row is read once
+/// for the [`MR`] rows, with eight-lane accumulators the compiler vectorises.
+/// Summation order per output: lanes of eight, then the tail (fixed, so
+/// results do not depend on the thread count).
+#[allow(clippy::too_many_arguments)]
+fn gemm(x: &[f32], w: &[f32], bias: Option<&[f32]>, rows: usize, n: usize, k: usize, a: Act, y: &mut [f32]) {
+    let row_tiles = rows.div_ceil(MR);
+    let col_tiles = n.div_ceil(NC);
+    let out = SyncPtr(y.as_mut_ptr());
+    (0..row_tiles * col_tiles).into_par_iter().for_each(|t| {
+        let (rt, ct) = (t / col_tiles, t % col_tiles);
+        let r0 = rt * MR;
+        let mr = MR.min(rows - r0);
+        let c0 = ct * NC;
+        let nc = NC.min(n - c0);
+        let k8 = k / 8 * 8;
+        for c in c0..c0 + nc {
+            let wr = &w[c * k..(c + 1) * k];
+            let mut acc = [[0f32; 8]; MR];
+            let mut kk = 0;
+            while kk < k8 {
+                let wv = &wr[kk..kk + 8];
+                for r in 0..mr {
+                    let xv = &x[(r0 + r) * k + kk..(r0 + r) * k + kk + 8];
+                    for j in 0..8 {
+                        acc[r][j] += xv[j] * wv[j];
+                    }
+                }
+                kk += 8;
+            }
+            for r in 0..mr {
+                let mut v = acc[r].iter().sum::<f32>();
+                for q in k8..k {
+                    v += x[(r0 + r) * k + q] * wr[q];
+                }
+                if let Some(b) = bias {
+                    v += b[c];
+                }
+                // Each (row, column) is written by exactly one task.
+                out.write((r0 + r) * n + c, act(v, a));
+            }
+        }
+    });
+}
+
+/// A raw output pointer shared by the GEMM tasks, which write disjoint elements.
+#[derive(Clone, Copy)]
+struct SyncPtr(*mut f32);
+#[allow(unsafe_code)]
+unsafe impl Send for SyncPtr {}
+#[allow(unsafe_code)]
+unsafe impl Sync for SyncPtr {}
+impl SyncPtr {
+    #[allow(unsafe_code)]
+    fn write(self, i: usize, v: f32) {
+        // SAFETY: `gemm` hands each index to exactly one task, inside `y`'s bounds.
+        unsafe { *self.0.add(i) = v }
+    }
+}
+
 impl Backend for Cpu {
     type Buf = CpuBuf;
     type Weight = CpuWeight;
@@ -165,17 +231,8 @@ impl Backend for Cpu {
         let bias = bias.map(|b| b.r());
         let mut yw = y.w();
         let y = &mut yw[y_off..y_off + rows * n];
-        // Parallel over output rows; inner loop over output columns reads
-        // contiguous weight rows.
-        y.par_chunks_mut(n).zip(x.par_chunks(k)).for_each(|(yrow, xrow)| {
-            for (c, out) in yrow.iter_mut().enumerate() {
-                let mut v = dot(xrow, &w.data[c * k..(c + 1) * k]);
-                if let Some(b) = &bias {
-                    v += b[c];
-                }
-                *out = act(v, a);
-            }
-        });
+        let bias = bias.as_deref().map(|b| &b[..n]);
+        gemm(x, &w.data, bias, rows, n, k, a, y);
     }
 
     fn layer_norm(

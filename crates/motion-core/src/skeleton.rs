@@ -330,7 +330,8 @@ pub fn soma77_to_30(local_rots: &[f32], skel30: &Skeleton, skel77: &Skeleton) ->
 }
 
 /// Re-express local rotations in another T-pose given global rotation offsets
-/// (`change_tpose`): `R'_g = R_g · O_j`, back to locals.
+/// (`change_tpose`): its einsum `"T N m n, N o n -> T N m o"` is `R'_g = R_g · O_jᵀ`,
+/// back to locals.
 pub fn change_tpose(local_rots: &[f32], offsets: &[f32], skel: &Skeleton) -> (Vec<f32>, Vec<f32>) {
     let j = skel.nbjoints();
     let frames = local_rots.len() / (j * 9);
@@ -339,7 +340,7 @@ pub fn change_tpose(local_rots: &[f32], offsets: &[f32], skel: &Skeleton) -> (Ve
     let mut ng = vec![0.0; g.len()];
     for t in 0..frames {
         for i in 0..j {
-            let m = geometry::matmul(&geometry::mat_at(&g, t * j + i), &geometry::mat_at(offsets, i));
+            let m = geometry::matmul(&geometry::mat_at(&g, t * j + i), &geometry::transpose(&geometry::mat_at(offsets, i)));
             geometry::set_mat(&mut ng, t * j + i, &m);
         }
     }

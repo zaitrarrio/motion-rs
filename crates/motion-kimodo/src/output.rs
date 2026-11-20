@@ -203,7 +203,7 @@ pub fn zip_stored(files: &[(String, Vec<u8>)]) -> Vec<u8> {
         out.extend_from_slice(&local);
         out.extend_from_slice(data);
         central.write_all(&0x0201_4b50u32.to_le_bytes()).unwrap();
-        central.write_all(&[20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0x21, 0]).unwrap();
+        central.write_all(&[20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0x21, 0]).unwrap(); // made by, needed, flags, method, time, date
         central.write_all(&crc.to_le_bytes()).unwrap();
         central.write_all(&(data.len() as u32).to_le_bytes()).unwrap();
         central.write_all(&(data.len() as u32).to_le_bytes()).unwrap();
