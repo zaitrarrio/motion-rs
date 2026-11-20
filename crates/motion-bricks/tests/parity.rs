@@ -222,3 +222,32 @@ fn g1_real_matches_pytorch() {
         run_g1(&f, &m, 1e-3);
     }
 }
+
+/// The engine's encode against the numpy port of `encode_motionbricks_inputs_kernel`
+/// in the fixture script, and the full generation against the recorded output.
+#[test]
+#[ignore = "needs the sample BVH (MOTION_BRICKS_SOMA_BVH), its clip fixture and the weights"]
+fn soma_engine_encode_matches_reference() {
+    use motion_bricks::engine::{GenerateConfig, SomaEngine};
+    use motion_bricks::io::read_bvh;
+    let (Some(d), Some(f), Ok(bvh)) =
+        (real_dir(), clip_fixture("soma_real_clip.safetensors"), std::env::var("MOTION_BRICKS_SOMA_BVH"))
+    else {
+        return;
+    };
+    let clip = read_bvh(Path::new(&bvh)).unwrap().rebase("Hips").unwrap();
+    let m = MotionBricks::load(&Cpu, &d.join("soma")).unwrap();
+    let eng = SomaEngine::new(&m, clip.skeleton.clone()).unwrap();
+    let ctx: Vec<_> = (0..4).map(|i| clip.poses[200 + 4 * i].clone()).collect();
+    let tgt: Vec<_> = (0..4).map(|i| clip.poses[320 + 4 * i].clone()).collect();
+    let (x, _) = eng.encode(&ctx, &tgt, &GenerateConfig::default()).unwrap();
+    let eg = rel_err(&x.global_root_values, &get(&f, "input.global_root_values"));
+    let el = rel_err(&x.local_root_values, &get(&f, "input.local_root_values"));
+    let ep = rel_err(&x.local_poses, &get(&f, "input.local_poses"));
+    println!("encode: global {eg:.2e} local {el:.2e} poses {ep:.2e}");
+    assert!(eg < 1e-4 && el < 1e-3 && ep < 1e-4);
+    let out = m.predict_soma(&Cpu, &x, None);
+    assert_eq!(out.pred_num_tokens, get(&f, "output.pred_num_tokens")[0] as usize);
+    let motion = eng.generate(&Cpu, &ctx, &tgt, &GenerateConfig::default()).unwrap();
+    println!("engine: {} tokens, {} frames", motion.tokens, motion.poses.len());
+}
