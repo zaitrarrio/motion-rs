@@ -17,10 +17,19 @@ released PyTorch code and weights.
 | backend | runs on | precision | status |
 |---|---|---|---|
 | `cpu` | anywhere | f32 | the reference every backend is checked against |
-| `wgpu` | NVIDIA, AMD, Intel, Apple (Vulkan / DX12 / Metal) | f32 | conformance suite on lavapipe only (no GPU in the authoring container); see `docs/backends.md` |
+| `wgpu` | NVIDIA, AMD, Intel, Apple (Vulkan / DX12 / Metal) | f32 | all 49 conformance cases pass on lavapipe, and both real models match the CPU there; **not yet run on a real GPU**. See `docs/backends.md` |
 
-No speed numbers: nothing has been measured on named hardware yet
-(`docs/runs/`).
+Parity with the released PyTorch code and weights (details in each doc):
+
+| | tiny random weights (CI) | released weights |
+|---|---|---|
+| Kimodo, 4 DDIM steps, posed joints | 5.6e-6 | 1.1e-5 |
+| MotionBricks, decoded poses (SOMA / G1) | ≤ 5.2e-6 | ≤ 2.6e-4, same argmax everywhere |
+| LLM2Vec Llama, pooled embedding | 5.6e-7 | not run: the base weights are gated |
+
+No GPU speed numbers: nothing has run on a GPU yet. The only timings are CPU
+reference runs in the authoring container
+(`docs/runs/2026-11-20-authoring-container/`).
 
 ## Use
 
@@ -28,7 +37,40 @@ No speed numbers: nothing has been measured on named hardware yet
 cargo build --release
 ```
 
-See `docs/` for each piece until the CLI section below is filled in.
+```bash
+./target/release/motion download kimodo-soma-rp
+```
+
+```bash
+./target/release/motion download motionbricks --include soma/
+```
+
+Generate with Kimodo (an empty prompt follows only the constraints; prompts
+need embeddings from `motion encode`, see `docs/text-encoder.md`):
+
+```bash
+./target/release/motion generate --model-dir weights/Kimodo-SOMA-RP-v1.2 --duration 5 --steps 50 --bvh --out walk
+```
+
+Continue it with MotionBricks toward two poses of the same clip:
+
+```bash
+./target/release/motion inbetween --model-dir weights/MotionBricks/soma --clip walk.bvh --context-frame 100 --target-frames 20,60 --out more.bvh
+```
+
+The Motion Studio, a local web page for both models (`docs/studio.md`):
+
+```bash
+./target/release/motion serve --kimodo-dir weights/Kimodo-SOMA-RP-v1.2 --bricks-dir weights/MotionBricks/soma
+```
+
+Check the WebGPU backend on your GPU before trusting it there:
+
+```bash
+./target/release/motion check --backend wgpu
+```
+
+Every command takes `--backend cpu|wgpu`.
 
 ## Layout
 
@@ -42,7 +84,8 @@ See `docs/` for each piece until the CLI section below is filled in.
 | `motion-text` | LLM2Vec Llama encoder, LoRA merge, tokenizer, precomputed embeddings |
 | `motion-wgpu` | WGSL kernels for every op |
 | `motion-check` | the conformance suite (`motion check`) |
-| `motion-cli` | the `motion` binary |
+| `motion-cli` | the `motion` binary: `download`, `generate`, `inbetween`, `encode`, `serve`, `check` |
+| `web/studio.html` | the Motion Studio page, compiled into the binary |
 
 ## Licences
 

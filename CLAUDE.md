@@ -32,6 +32,10 @@ State and invariants only; the reasoning is in `docs/design.md`.
   runs from precomputed embeddings (`motion encode` writes them) or with an
   empty prompt (zero text features, constraints only).
 - No speed claim without a measurement on named hardware recorded under
-  `docs/runs/`. There are none yet.
+  `docs/runs/`. The only record is CPU-reference timing in the authoring
+  container; there are no GPU numbers.
+- `motion serve` (the Motion Studio) serves `web/studio.html` via
+  `include_str!`; its JSON API is documented in `docs/studio.md` and the page
+  is its only client, so change both together.
 - Sub-agents never `git commit`; the coordinating session commits and opens
   the PR.
