@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Studio</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #16181d; --muted: #5d6573; --line: #dfe3ea;
+  --accent: #2f6fdf; --accent-ink: #ffffff; --good: #1e8e5a; --bad: #c2362f; --warn: #a36a00;
+  --left: #2f6fdf; --right: #d2552a; --mid: #4b5563; --ground: #e9edf3; --grid: #d3d9e3;
+  --path: #1e8e5a; --target: #8a3ffc; --chip: #eef2f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --panel: #171a21; --ink: #e8ebf1; --muted: #9aa3b2; --line: #2a2f3a;
+    --accent: #6aa0ff; --accent-ink: #0b1020; --good: #4cc38a; --bad: #ff6b61; --warn: #f0b44c;
+    --left: #6aa0ff; --right: #ff8a5c; --mid: #aeb6c4; --ground: #141821; --grid: #232a36;
+    --path: #4cc38a; --target: #b48cff; --chip: #212633;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --panel: #171a21; --ink: #e8ebf1; --muted: #9aa3b2; --line: #2a2f3a;
+  --accent: #6aa0ff; --accent-ink: #0b1020; --good: #4cc38a; --bad: #ff6b61; --warn: #f0b44c;
+  --left: #6aa0ff; --right: #ff8a5c; --mid: #aeb6c4; --ground: #141821; --grid: #232a36;
+  --path: #4cc38a; --target: #b48cff; --chip: #212633;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 10px; }
+.engine { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+.dot.ok { background: var(--good); } .dot.bad { background: var(--bad); }
+main { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; padding: 16px 20px 32px; max-width: 1500px; margin: 0 auto; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tabs { display: flex; gap: 4px; background: var(--chip); padding: 4px; border-radius: 8px; margin-bottom: 14px; }
+.tabs button { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 7px 8px; border-radius: 6px; font: inherit; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1; min-width: 0; }
+input, textarea, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 38px; }
+.row { display: flex; gap: 8px; align-items: flex-end; }
+.seg { display: grid; grid-template-columns: 1fr 74px 30px; gap: 6px; align-items: start; margin-bottom: 8px; }
+.seg .num { font-size: 12px; color: var(--muted); }
+button { font: inherit; cursor: pointer; }
+.primary { width: 100%; background: var(--accent); color: var(--accent-ink); border: 0; padding: 10px; border-radius: 8px; font-weight: 600; margin-top: 6px; }
+.primary:disabled { opacity: .5; cursor: default; }
+.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 6px 10px; border-radius: 7px; }
+.ghost.on { border-color: var(--accent); color: var(--accent); }
+.icon { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 7px; height: 36px; width: 30px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+.chip { background: var(--chip); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; }
+.section { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+.section h3 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.list { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
+.item input { padding: 3px 6px; width: 70px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: 7px; margin: 8px 0 0; }
+.msg.bad { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
+.msg.note { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--ink); }
+.screen { position: relative; width: 100%; aspect-ratio: 16 / 10; background: var(--ground); border-radius: 8px; overflow: hidden; touch-action: none; }
+.screen canvas { width: 100%; height: 100%; display: block; }
+.empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 20px; pointer-events: none; }
+.mode-badge { position: absolute; top: 10px; left: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 12px; }
+.controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.controls input[type=range] { flex: 1; min-width: 120px; padding: 0; }
+.counter { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; min-width: 90px; text-align: right; }
+.progress { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.progress div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.status { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
+.history { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.card { text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--ink); }
+.card.sel { border-color: var(--accent); }
+.card .t { font-size: 13px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card .m { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.kind { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+kbd { font: 12px ui-monospace, monospace; background: var(--chip); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motion Studio</h1>
+  <div class="engine" aria-live="polite"><span class="dot" id="eng-dot"></span><span id="eng-text">Connecting to the local engine…</span></div>
+</header>
+<main>
+  <div class="stack">
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-k" aria-selected="true">Text to motion</button>
+        <button role="tab" id="tab-b" aria-selected="false">Continue with MotionBricks</button>
+      </div>
+
+      <div id="pane-k">
+        <h2>Prompt timeline</h2>
+        <div id="segments"></div>
+        <button class="ghost" id="add-seg" type="button">+ Add segment</button>
+        <p class="hint">Each segment is a prompt and its length. Several segments play one after another with blended transitions (Kimodo multi-prompt).</p>
+        <div class="chips" id="gallery" aria-label="Prompt gallery"></div>
+        <p class="msg note" id="no-encoder" hidden>This engine has no text encoder. Pick a gallery prompt, or leave a prompt empty for motion shaped only by the path and keyframes.</p>
+
+        <div class="section">
+          <h3>Root path</h3>
+          <div class="row"><button class="ghost" id="draw-path" type="button">Draw path on the ground</button><button class="ghost" id="clear-path" type="button">Clear</button></div>
+          <div class="list" id="waypoints"></div>
+          <p class="hint">Click the ground to add waypoints. Times spread evenly over the clip; edit them in the list.</p>
+        </div>
+
+        <div class="section">
+          <h3>Keyframes</h3>
+          <button class="ghost" id="pin" type="button" disabled>Pin the player's current pose</button>
+          <div class="list" id="keyframes"></div>
+          <p class="hint">A pinned pose (from any earlier motion) becomes a full-body keyframe at the time you choose.</p>
+        </div>
+
+        <div class="section">
+          <h3>Settings</h3>
+          <div class="row">
+            <label class="field">Steps<input id="steps" type="number" min="1" max="1000" value="50"></label>
+            <label class="field">Text guidance<input id="cfg-t" type="number" step="0.1" value="2"></label>
+            <label class="field">Constraint guidance<input id="cfg-c" type="number" step="0.1" value="2"></label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="field">Seed<input id="seed" type="number" min="0" value="0"></label>
+            <label class="field">Start heading (°)<input id="heading" type="number" value="0"></label>
+            <button class="ghost" id="dice" type="button">New seed</button>
+          </div>
+        </div>
+        <button class="primary" id="go-k" type="button" disabled>Generate motion</button>
+        <p class="hint">Ctrl/⌘ + Enter generates. Motion stays on your machine: the engine runs locally and this page only talks to it.</p>
+      </div>
+
+      <div id="pane-b" hidden>
+        <h2>Continue a motion</h2>
+        <p class="hint" style="margin-top:0">MotionBricks takes the last four frames of the selected motion as context and generates a 0.6–1.9 s transition to each target pose, one after another.</p>
+        <div class="item" style="margin-top:8px"><span id="ctx-label">No motion selected.</span></div>
+        <div class="section">
+          <h3>Targets</h3>
+          <button class="ghost" id="add-target" type="button" disabled>Use the player's current pose as a target</button>
+          <div class="list" id="targets"></div>
+          <p class="hint">Select a target, then click the ground to place it. Its heading turns the pose on the spot.</p>
+        </div>
+        <div class="section">
+          <h3>Settings</h3>
+          <div class="row">
+            <label class="field">Fewest tokens<input id="tok-min" type="number" min="6" max="16" value="8"></label>
+            <label class="field">Most tokens<input id="tok-max" type="number" min="6" max="16" value="14"></label>
+          </div>
+          <p class="hint">Each token is four frames at 30 Hz; the model picks the length within this range.</p>
+        </div>
+        <button class="primary" id="go-b" type="button" disabled>Generate transitions</button>
+      </div>
+      <p class="msg bad" id="err" hidden></p>
+      <p class="msg note" id="synthetic" hidden>The engine runs tiny random models (<code>--synthetic</code>), so motion is noise. Start it with <code>--kimodo-dir</code> / <code>--bricks-dir</code> for real motion.</p>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="screen" id="screen">
+        <canvas id="canvas"></canvas>
+        <div class="empty" id="empty">Generated motion plays here. Drag to orbit, scroll to zoom.</div>
+        <div class="mode-badge" id="badge" hidden></div>
+      </div>
+      <div class="controls">
+        <button class="ghost" id="play" type="button" disabled>Pause</button>
+        <input type="range" id="scrub" min="0" max="0" value="0" disabled aria-label="Frame">
+        <span class="counter" id="counter">0 / 0</span>
+        <select id="speed" aria-label="Speed" style="width:auto"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+        <button class="ghost on" id="follow" type="button">Follow</button>
+        <button class="ghost on" id="contacts" type="button">Contacts</button>
+      </div>
+      <div class="controls">
+        <a class="ghost" id="dl-bvh" href="#" download hidden>Download BVH</a>
+        <a class="ghost" id="dl-npz" href="#" download hidden>Download NPZ</a>
+        <span class="hint" id="sel-label" style="margin:0"></span>
+      </div>
+      <div class="progress" id="progress" hidden><div id="bar"></div></div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <h2>This session</h2>
+      <div class="history" id="history"><p class="hint">Finished motions appear here. The engine keeps the last 24.</p></div>
+    </section>
+  </div>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const ENGINE = (params.get("engine") || (location.protocol.startsWith("http") ? "" : "http://127.0.0.1:7860")).replace(/\/$/, "");
+const api = (p) => ENGINE + p;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+let info = null;
+const S = {
+  mode: "k", segments: [{ prompt: "", seconds: 5 }], waypoints: [], keyframes: [], targets: [],
+  drawPath: false, placing: -1, motion: null, motions: new Map(), frame: 0, playing: true, speed: 1,
+  follow: true, showContacts: true, job: null, selected: null,
+};
+
+// ---------------------------------------------------------------- engine
+async function connect() {
+  try {
+    const r = await fetch(api("/api/info"), { cache: "no-store" });
+    info = await r.json();
+    $("eng-dot").className = "dot ok";
+    const models = [info.kimodo && "Kimodo", info.bricks && "MotionBricks"].filter(Boolean).join(" + ");
+    $("eng-text").textContent = `${models} on ${info.backend}${info.text_encoder ? " · text encoder" : ""}`;
+    $("synthetic").hidden = !info.synthetic;
+    $("no-encoder").hidden = info.text_encoder || info.synthetic;
+    $("go-k").disabled = !info.kimodo;
+    if (!info.kimodo) { $("go-k").textContent = "Kimodo is not loaded (--kimodo-dir)"; }
+    if (!info.bricks) { $("go-b").textContent = "MotionBricks is not loaded (--bricks-dir)"; }
+    renderGallery();
+    refreshHistory();
+  } catch (e) {
+    $("eng-dot").className = "dot bad";
+    $("eng-text").textContent = "No engine at " + (ENGINE || location.host) + ". Start it with: motion serve --kimodo-dir … --bricks-dir …";
+    setTimeout(connect, 3000);
+  }
+}
+
+function showErr(m) { $("err").hidden = !m; $("err").textContent = m || ""; }
+
+// ---------------------------------------------------------------- tabs
+function setMode(m) {
+  S.mode = m;
+  $("tab-k").setAttribute("aria-selected", m === "k");
+  $("tab-b").setAttribute("aria-selected", m === "b");
+  $("pane-k").hidden = m !== "k";
+  $("pane-b").hidden = m !== "b";
+  S.drawPath = false; $("draw-path").classList.remove("on");
+  updateBricks(); draw();
+}
+$("tab-k").onclick = () => setMode("k");
+$("tab-b").onclick = () => setMode("b");
+
+// ---------------------------------------------------------------- timeline
+let focusSeg = 0;
+function totalSeconds() { return S.segments.reduce((a, s) => a + (+s.seconds || 0), 0); }
+function renderSegments() {
+  const box = $("segments"); box.innerHTML = "";
+  S.segments.forEach((s, i) => {
+    const row = document.createElement("div"); row.className = "seg";
+    const ta = document.createElement("textarea"); ta.rows = 1; ta.value = s.prompt; ta.maxLength = 500;
+    ta.placeholder = i === 0 ? "A person walks forward" : "then…";
+    ta.setAttribute("aria-label", `Prompt ${i + 1}`);
+    ta.oninput = () => { s.prompt = ta.value; };
+    ta.onfocus = () => { focusSeg = i; };
+    const sec = document.createElement("input"); sec.type = "number"; sec.min = "0.5"; sec.max = "10"; sec.step = "0.5"; sec.value = s.seconds;
+    sec.setAttribute("aria-label", `Seconds for prompt ${i + 1}`);
+    sec.oninput = () => { s.seconds = +sec.value; spreadWaypoints(false); };
+    const rm = document.createElement("button"); rm.className = "icon"; rm.type = "button"; rm.textContent = "×"; rm.title = "Remove";
+    rm.disabled = S.segments.length === 1;
+    rm.onclick = () => { S.segments.splice(i, 1); renderSegments(); };
+    row.append(ta, sec, rm); box.append(row);
+  });
+}
+$("add-seg").onclick = () => { S.segments.push({ prompt: "", seconds: 3 }); renderSegments(); };
+function renderGallery() {
+  const g = $("gallery"); g.innerHTML = "";
+  for (const p of (info && info.gallery) || []) {
+    const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = p;
+    c.onclick = () => { const s = S.segments[Math.min(focusSeg, S.segments.length - 1)]; s.prompt = p; renderSegments(); };
+    g.append(c);
+  }
+}
+
+// ---------------------------------------------------------------- path
+function spreadWaypoints(force) {
+  const n = S.waypoints.length, T = totalSeconds();
+  if (!n) return;
+  S.waypoints.forEach((w, i) => { if (force || w.auto) { w.t = +(T * (i + 1) / n).toFixed(2); w.auto = true; } w.t = Math.min(w.t, T); });
+  renderWaypoints();
+}
+function renderWaypoints() {
+  const box = $("waypoints"); box.innerHTML = "";
+  S.waypoints.forEach((w, i) => {
+    const it = document.createElement("div"); it.className = "item";
+    const l = document.createElement("span"); l.textContent = `#${i + 1}  x ${w.x.toFixed(2)}  z ${w.z.toFixed(2)}`;
+    const r = document.createElement("span");
+    const t = document.createElement("input"); t.type = "number"; t.step = "0.1"; t.min = "0"; t.value = w.t; t.title = "Time (s)";
+    t.oninput = () => { w.t = +t.value; w.auto = false; draw(); };
+    const x = document.createElement("button"); x.className = "ghost"; x.type = "button"; x.textContent = "×";
+    x.onclick = () => { S.waypoints.splice(i, 1); spreadWaypoints(false); renderWaypoints(); draw(); };
+    r.append(t, " s ", x); it.append(l, r); box.append(it);
+  });
+}
+$("draw-path").onclick = () => { S.drawPath = !S.drawPath; S.placing = -1; $("draw-path").classList.toggle("on", S.drawPath); renderTargets(); draw(); };
+$("clear-path").onclick = () => { S.waypoints = []; renderWaypoints(); draw(); };
+
+// ---------------------------------------------------------------- keyframes / targets
+function currentPick() { return S.motion ? { job: S.motion.id, frame: S.frame, label: S.motion.label } : null; }
+$("pin").onclick = () => {
+  const p = currentPick(); if (!p) return;
+  S.keyframes.push({ ...p, at: +(Math.min(S.frame / S.motion.fps, totalSeconds())).toFixed(2) });
+  renderKeyframes();
+};
+function renderKeyframes() {
+  const box = $("keyframes"); box.innerHTML = "";
+  S.keyframes.forEach((k, i) => {
+    const it = document.createElement("div"); it.className = "item";
+    const l = document.createElement("span"); l.textContent = `#${k.job} frame ${k.frame}`; l.title = k.label;
+    const r = document.createElement("span");
+    const t = document.createElement("input"); t.type = "number"; t.step = "0.1"; t.min = "0"; t.value = k.at; t.title = "At (s)";
+    t.oninput = () => { k.at = +t.value; };
+    const x = document.createElement("button"); x.className = "ghost"; x.type = "button"; x.textContent = "×";
+    x.onclick = () => { S.keyframes.splice(i, 1); renderKeyframes(); };
+    r.append("at ", t, " s ", x); it.append(l, r); box.append(it);
+  });
+}
+$("add-target").onclick = () => {
+  const p = currentPick(); if (!p) return;
+  const root = rootAt(S.motion, S.frame);
+  S.targets.push({ ...p, poses: 4, x: +(root[0] + 1.5).toFixed(2), z: +root[2].toFixed(2), heading: 0 });
+  S.placing = S.targets.length - 1; S.drawPath = false; $("draw-path").classList.remove("on");
+  renderTargets(); draw();
+};
+function renderTargets() {
+  const box = $("targets"); box.innerHTML = "";
+  S.targets.forEach((t, i) => {
+    const it = document.createElement("div"); it.className = "item"; if (S.placing === i) it.style.borderColor = css("--target");
+    const l = document.createElement("button"); l.type = "button"; l.className = "ghost"; l.style.textAlign = "left";
+    l.textContent = `${i + 1}. #${t.job} f${t.frame} → (${t.x.toFixed(2)}, ${t.z.toFixed(2)})`;
+    l.title = "Select, then click the ground to place";
+    l.onclick = () => { S.placing = S.placing === i ? -1 : i; renderTargets(); draw(); };
+    const r = document.createElement("span");
+    const h = document.createElement("input"); h.type = "number"; h.step = "15"; h.value = t.heading; h.title = "Heading (°)";
+    h.oninput = () => { t.heading = +h.value; draw(); };
+    const n = document.createElement("select"); n.title = "Target poses"; n.style.width = "auto";
+    for (const v of [1, 2, 3, 4]) { const o = document.createElement("option"); o.value = v; o.textContent = `${v} pose${v > 1 ? "s" : ""}`; if (v === t.poses) o.selected = true; n.append(o); }
+    n.onchange = () => { t.poses = +n.value; };
+    const x = document.createElement("button"); x.className = "ghost"; x.type = "button"; x.textContent = "×";
+    x.onclick = () => { S.targets.splice(i, 1); if (S.placing >= S.targets.length) S.placing = -1; renderTargets(); draw(); };
+    r.append(h, "° ", n, " ", x); it.append(l, r); box.append(it);
+  });
+  updateBricks();
+}
+function updateBricks() {
+  $("ctx-label").textContent = S.motion ? `Context: the end of #${S.motion.id} — ${S.motion.label}` : "Generate or select a motion first: its last frames become the context.";
+  $("add-target").disabled = !S.motion;
+  $("pin").disabled = !S.motion;
+  $("go-b").disabled = !(info && info.bricks && S.motion && S.targets.length) || !!S.job;
+  if (info && info.kimodo) $("go-k").disabled = !!S.job;
+}
+
+// ---------------------------------------------------------------- generate
+async function submit(path, body) {
+  showErr("");
+  try {
+    const r = await fetch(api(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    S.job = j.id; updateBricks(); poll(j.id);
+  } catch (e) { showErr(String(e.message || e)); }
+}
+$("go-k").onclick = () => {
+  const body = {
+    segments: S.segments.map((s) => ({ prompt: s.prompt, seconds: +s.seconds || 3 })),
+    steps: +$("steps").value || 50, cfg: [+$("cfg-t").value, +$("cfg-c").value], seed: +$("seed").value || 0,
+    heading: +$("heading").value || 0, waypoints: S.waypoints.map((w) => ({ t: w.t, x: w.x, z: w.z })),
+    keyframes: S.keyframes.map((k) => ({ job: k.job, frame: k.frame, at: k.at })),
+  };
+  submit("/api/kimodo", body);
+};
+$("go-b").onclick = () => {
+  submit("/api/bricks", {
+    context: S.motion.id, tokens: [+$("tok-min").value, +$("tok-max").value],
+    targets: S.targets.map((t) => ({ job: t.job, frame: t.frame, poses: t.poses, x: t.x, z: t.z, heading: t.heading })),
+  });
+};
+$("dice").onclick = () => { $("seed").value = Math.floor(Math.random() * 1e6); };
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { (S.mode === "k" ? $("go-k") : $("go-b")).click(); }
+  if (e.key === " " && document.activeElement === document.body) { e.preventDefault(); $("play").click(); }
+});
+async function poll(id) {
+  $("progress").hidden = false;
+  let s;
+  try { s = await (await fetch(api(`/api/jobs/${id}`), { cache: "no-store" })).json(); } catch (e) { setTimeout(() => poll(id), 1000); return; }
+  const frac = s.steps ? s.step / s.steps : 0;
+  const segs = s.segments > 1 ? ` · segment ${s.segment + 1} of ${s.segments}` : "";
+  $("bar").style.width = `${Math.round(((s.segment || 0) + frac) / Math.max(1, s.segments) * 100)}%`;
+  if (s.state === "queued") $("status").textContent = "Queued…";
+  else if (s.state === "running") $("status").textContent = s.kind === "kimodo" ? `Denoising: step ${s.step} of ${s.steps || "…"}${segs}` : `Generating: target ${s.step} of ${s.steps || "…"}`;
+  if (s.state === "done") {
+    $("status").textContent = `Done in ${s.seconds.toFixed(1)} s: ${s.frames} frames.`;
+    $("progress").hidden = true; S.job = null; await loadMotion(id); refreshHistory(); updateBricks(); return;
+  }
+  if (s.state === "failed") { $("progress").hidden = true; $("status").textContent = ""; S.job = null; showErr(s.message); updateBricks(); refreshHistory(); return; }
+  setTimeout(() => poll(id), 500);
+}
+async function loadMotion(id) {
+  let m = S.motions.get(id);
+  if (!m) {
+    const r = await fetch(api(`/api/jobs/${id}/motion`), { cache: "no-store" });
+    if (!r.ok) { showErr("This motion has expired on the engine."); return; }
+    m = await r.json(); m.positions = Float32Array.from(m.positions); S.motions.set(id, m);
+  }
+  S.motion = m; S.frame = 0; S.selected = id;
+  $("empty").hidden = true; $("play").disabled = false; $("scrub").disabled = false;
+  $("scrub").max = m.frames - 1; $("play").textContent = "Pause"; S.playing = true;
+  $("dl-bvh").hidden = false; $("dl-bvh").href = api(`/api/jobs/${id}/motion.bvh`);
+  $("dl-npz").hidden = m.kind !== "kimodo"; $("dl-npz").href = api(`/api/jobs/${id}/motion.npz`);
+  $("sel-label").textContent = `#${id} ${m.label}`;
+  document.querySelectorAll(".card").forEach((c) => c.classList.toggle("sel", +c.dataset.id === id));
+  updateBricks();
+}
+async function refreshHistory() {
+  try {
+    const j = await (await fetch(api("/api/jobs"), { cache: "no-store" })).json();
+    const box = $("history"); box.innerHTML = "";
+    if (!j.jobs.length) { box.innerHTML = '<p class="hint">Finished motions appear here. The engine keeps the last 24.</p>'; return; }
+    for (const s of j.jobs) {
+      const c = document.createElement("button"); c.type = "button"; c.className = "card" + (s.id === S.selected ? " sel" : ""); c.dataset.id = s.id;
+      const k = document.createElement("div"); k.className = "kind"; k.textContent = `#${s.id} · ${s.kind === "kimodo" ? "Kimodo" : "MotionBricks"}`;
+      const t = document.createElement("div"); t.className = "t"; t.textContent = s.label || "(no prompt)";
+      const m = document.createElement("div"); m.className = "m";
+      m.textContent = s.state === "done" ? `${(s.frames / 30).toFixed(1)} s · made in ${s.seconds.toFixed(1)} s` : s.state === "failed" ? "failed" : s.state;
+      c.append(k, t, m);
+      c.onclick = () => { if (s.state === "done") loadMotion(s.id); };
+      box.append(c);
+    }
+  } catch (e) { /* engine away */ }
+}
+
+// ---------------------------------------------------------------- viewer
+const cv = $("canvas"), ctx = cv.getContext("2d");
+const cam = { yaw: -0.6, pitch: 0.32, dist: 5.0, fov: 0.85, target: [0, 0.9, 0] };
+function rootAt(m, f) { const o = f * m.positions.length / m.frames; return [m.positions[o], m.positions[o + 1], m.positions[o + 2]]; }
+function basis() {
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const fwd = [-sy * cp, -sp, -cy * cp];
+  const eye = [cam.target[0] - fwd[0] * cam.dist, cam.target[1] - fwd[1] * cam.dist, cam.target[2] - fwd[2] * cam.dist];
+  const right = [cy, 0, -sy];
+  const up = [right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2], right[0] * fwd[1] - right[1] * fwd[0]];
+  return { eye, fwd, right, up };
+}
+function project(p, B, W, H) {
+  const d = [p[0] - B.eye[0], p[1] - B.eye[1], p[2] - B.eye[2]];
+  const z = d[0] * B.fwd[0] + d[1] * B.fwd[1] + d[2] * B.fwd[2];
+  if (z < 0.05) return null;
+  const f = (H / 2) / Math.tan(cam.fov / 2);
+  const x = d[0] * B.right[0] + d[1] * B.right[1] + d[2] * B.right[2];
+  const y = d[0] * B.up[0] + d[1] * B.up[1] + d[2] * B.up[2];
+  return [W / 2 + f * x / z, H / 2 - f * y / z, z];
+}
+function groundHit(px, py) {
+  const W = cv.width, H = cv.height, B = basis();
+  const f = (H / 2) / Math.tan(cam.fov / 2);
+  const x = (px - W / 2) / f, y = -(py - H / 2) / f;
+  const dir = [B.fwd[0] + x * B.right[0] + y * B.up[0], B.fwd[1] + x * B.right[1] + y * B.up[1], B.fwd[2] + x * B.right[2] + y * B.up[2]];
+  if (Math.abs(dir[1]) < 1e-6) return null;
+  const t = -B.eye[1] / dir[1];
+  if (t <= 0) return null;
+  return [B.eye[0] + t * dir[0], B.eye[2] + t * dir[2]];
+}
+function line(a, b, color, w) { if (!a || !b) return; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+function side(name) { return name.startsWith("Left") ? "--left" : name.startsWith("Right") ? "--right" : "--mid"; }
+function draw() {
+  const dpr = window.devicePixelRatio || 1, rect = cv.getBoundingClientRect();
+  if (cv.width !== Math.round(rect.width * dpr) || cv.height !== Math.round(rect.height * dpr)) { cv.width = Math.round(rect.width * dpr); cv.height = Math.round(rect.height * dpr); }
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle = css("--ground"); ctx.fillRect(0, 0, W, H);
+  if (S.motion && S.follow) { const r = rootAt(S.motion, S.frame); cam.target = [r[0], 0.9, r[2]]; }
+  const B = basis();
+  // ground grid, 0.5 m
+  const cx = Math.round(cam.target[0] * 2) / 2, cz = Math.round(cam.target[2] * 2) / 2, ext = 6;
+  for (let i = -ext; i <= ext; i += 0.5) {
+    const major = Math.abs((cx + i) % 2) < 1e-6 || Math.abs((cz + i) % 2) < 1e-6;
+    const g = css("--grid");
+    line(project([cx + i, 0, cz - ext], B, W, H), project([cx + i, 0, cz + ext], B, W, H), g, major ? 1.5 * dpr : 0.7 * dpr);
+    line(project([cx - ext, 0, cz + i], B, W, H), project([cx + ext, 0, cz + i], B, W, H), g, major ? 1.5 * dpr : 0.7 * dpr);
+  }
+  // path waypoints
+  if (S.mode === "k" && S.waypoints.length) {
+    const pc = css("--path"); let prev = null;
+    S.waypoints.forEach((w, i) => {
+      const p = project([w.x, 0, w.z], B, W, H); if (!p) return;
+      if (prev) line(prev, p, pc, 2 * dpr);
+      ctx.fillStyle = pc; ctx.beginPath(); ctx.arc(p[0], p[1], 5 * dpr, 0, 7); ctx.fill();
+      ctx.fillStyle = css("--ink"); ctx.font = `${11 * dpr}px system-ui`; ctx.fillText(`${w.t.toFixed(1)}s`, p[0] + 7 * dpr, p[1] - 6 * dpr);
+      prev = p;
+    });
+  }
+  // targets
+  if (S.mode === "b") {
+    S.targets.forEach((t, i) => {
+      const c = project([t.x, 0, t.z], B, W, H); const a = t.heading * Math.PI / 180;
+      const tip = project([t.x + 0.5 * Math.sin(a), 0, t.z + 0.5 * Math.cos(a)], B, W, H);
+      const col = css("--target"); if (!c) return;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(c[0], c[1], (S.placing === i ? 8 : 6) * dpr, 0, 7); ctx.fill();
+      line(c, tip, col, 3 * dpr);
+      ctx.fillStyle = css("--ink"); ctx.font = `${12 * dpr}px system-ui`; ctx.fillText(String(i + 1), c[0] + 9 * dpr, c[1] - 8 * dpr);
+    });
+  }
+  if (!S.motion || !info) return;
+  const m = S.motion, J = info.parents.length, o = S.frame * J * 3, P = m.positions;
+  // root trail
+  ctx.globalAlpha = 0.35; let prev = null;
+  for (let f = 0; f < m.frames; f += 2) { const r = rootAt(m, f); const p = project([r[0], 0, r[2]], B, W, H); if (prev && p) line(prev, p, css("--muted"), 1.5 * dpr); prev = p; }
+  ctx.globalAlpha = 1;
+  const pts = []; for (let j = 0; j < J; j++) pts.push(project([P[o + 3 * j], P[o + 3 * j + 1], P[o + 3 * j + 2]], B, W, H));
+  // shadow
+  ctx.globalAlpha = 0.18;
+  for (let j = 1; j < J; j++) { const p = info.parents[j]; line(project([P[o + 3 * j], 0, P[o + 3 * j + 2]], B, W, H), project([P[o + 3 * p], 0, P[o + 3 * p + 2]], B, W, H), css("--ink"), 4 * dpr); }
+  ctx.globalAlpha = 1;
+  const bones = []; for (let j = 1; j < J; j++) { const p = info.parents[j]; if (pts[j] && pts[p]) bones.push([(pts[j][2] + pts[p][2]) / 2, j, p]); }
+  bones.sort((a, b) => b[0] - a[0]);
+  const scale = (H / 2) / Math.tan(cam.fov / 2);
+  for (const [z, j, p] of bones) {
+    const name = info.joints[j], finger = /Hand(Thumb|Index|Middle|Ring|Pinky)/.test(name) || /Eye|Jaw|HeadEnd/.test(name);
+    ctx.lineCap = "round"; line(pts[j], pts[p], css(side(name)), Math.max(1.2 * dpr, (finger ? 0.012 : 0.035) * scale / z));
+  }
+  const head = info.joints.indexOf("Head");
+  if (pts[head]) { ctx.fillStyle = css("--mid"); ctx.beginPath(); ctx.arc(pts[head][0], pts[head][1], Math.max(3 * dpr, 0.09 * scale / pts[head][2]), 0, 7); ctx.fill(); }
+  if (S.showContacts && m.contacts.length) {
+    info.feet.forEach((j, k) => {
+      if (m.contacts[S.frame * 4 + k] > 0.5 && pts[j]) { ctx.fillStyle = css("--good"); ctx.beginPath(); ctx.arc(pts[j][0], pts[j][1], 5 * dpr, 0, 7); ctx.fill(); }
+    });
+  }
+  $("counter").textContent = `${S.frame + 1} / ${m.frames}  ${(S.frame / m.fps).toFixed(2)} s`;
+  $("scrub").value = S.frame;
+  const badge = $("badge");
+  badge.hidden = !(S.drawPath || S.placing >= 0);
+  badge.textContent = S.drawPath ? "Click the ground to add waypoints" : S.placing >= 0 ? `Click the ground to place target ${S.placing + 1}` : "";
+}
+let last = performance.now(), acc = 0;
+function tick(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (S.motion && S.playing) { acc += dt * S.speed * S.motion.fps; while (acc >= 1) { acc -= 1; S.frame = (S.frame + 1) % S.motion.frames; } }
+  draw(); requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+$("play").onclick = () => { S.playing = !S.playing; $("play").textContent = S.playing ? "Pause" : "Play"; };
+$("scrub").oninput = () => { S.frame = +$("scrub").value; S.playing = false; $("play").textContent = "Play"; };
+$("speed").onchange = () => { S.speed = +$("speed").value; };
+$("follow").onclick = () => { S.follow = !S.follow; $("follow").classList.toggle("on", S.follow); };
+$("contacts").onclick = () => { S.showContacts = !S.showContacts; $("contacts").classList.toggle("on", S.showContacts); };
+let drag = null;
+cv.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, moved: false }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", (e) => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+  if (drag.moved) { cam.yaw -= dx * 0.008; cam.pitch = Math.max(0.05, Math.min(1.4, cam.pitch + dy * 0.006)); drag.x = e.clientX; drag.y = e.clientY; }
+});
+cv.addEventListener("pointerup", (e) => {
+  const click = drag && !drag.moved; drag = null; if (!click) return;
+  const r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
+  const g = groundHit((e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr); if (!g) return;
+  if (S.mode === "k" && S.drawPath) { S.waypoints.push({ x: g[0], z: g[1], t: 0, auto: true }); spreadWaypoints(false); }
+  else if (S.mode === "b" && S.placing >= 0) { const t = S.targets[S.placing]; t.x = +g[0].toFixed(2); t.z = +g[1].toFixed(2); renderTargets(); }
+  draw();
+});
+cv.addEventListener("wheel", (e) => { e.preventDefault(); cam.dist = Math.max(1.5, Math.min(20, cam.dist * Math.exp(e.deltaY * 0.001))); }, { passive: false });
+window.addEventListener("resize", draw);
+
+renderSegments(); renderWaypoints(); renderKeyframes(); renderTargets();
+connect();
+</script>
+</body>
+</html>
