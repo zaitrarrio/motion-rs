@@ -6,6 +6,7 @@ members = [
     "crates/motion-nn",
     "crates/motion-bricks",
     "crates/motion-kimodo",
+    "crates/motion-text",
     "crates/motion-cli",
 ]
 

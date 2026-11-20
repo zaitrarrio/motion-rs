@@ -84,6 +84,25 @@ impl SafetensorsDir {
         &self.files
     }
 
+    /// Rows `rows` of a 2-D tensor as f32, without converting the rest (a
+    /// 128k-row embedding table read for a dozen tokens).
+    pub fn get_rows(&self, name: &str, rows: &[usize]) -> Result<Vec<f32>> {
+        let (dtype, shape, data) = self.view(name)?;
+        if shape.len() != 2 {
+            return Err(Error::Weights(format!("`{name}`: get_rows needs a 2-D tensor, got {shape:?}")));
+        }
+        let width = shape[1];
+        let esize = data.len() / (shape[0] * width);
+        let mut out = Vec::with_capacity(rows.len() * width);
+        for &r in rows {
+            if r >= shape[0] {
+                return Err(Error::Weights(format!("`{name}`: row {r} out of {}", shape[0])));
+            }
+            out.extend(bytes_to_f32(dtype, &data[r * width * esize..(r + 1) * width * esize])?);
+        }
+        Ok(out)
+    }
+
     fn view(&self, name: &str) -> Result<(safetensors::Dtype, Vec<usize>, &[u8])> {
         let &i = self
             .index
