@@ -1,0 +1,65 @@
+# CI for motion-rs: the test contract of CLAUDE.md on hardware GitHub has (no GPU).
+#
+#   check   cargo check + clippy of every target.
+#   test    cargo test --workspace on lavapipe (mesa's CPU Vulkan driver): the
+#           CPU reference, the PyTorch-parity fixtures of every crate, and the
+#           WebGPU conformance suite. `CI=1` makes a skipped WebGPU test a failure.
+#
+# No speed numbers come from here.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: check
+      - run: cargo check --workspace --all-targets --locked
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test
+      - name: lavapipe (mesa's CPU Vulkan driver)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers vulkan-tools
+          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json vulkaninfo --summary | grep -iE 'deviceName|llvmpipe' || true
+      - name: cargo test --workspace
+        env:
+          CI: "1"
+          MOTION_ALLOW_SOFTWARE: "1"
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+        run: cargo test --workspace --locked --no-fail-fast 2>&1 | tee test.log
+      - name: the WebGPU suite ran on lavapipe, not skipped
+        run: |
+          if grep -q '^skipping:' test.log; then
+            echo 'a WebGPU test skipped: no usable Vulkan adapter'; grep '^skipping:' test.log; exit 1
+          fi
+          grep -E '^test result' test.log
