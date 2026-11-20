@@ -1,0 +1,20 @@
+[package]
+name = "motion-kimodo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Kimodo (NVIDIA's kinematic motion diffusion model) inference: two-stage transformer denoiser, DDIM, classifier-free guidance, the smooth-root motion representation and kinematic constraints."
+
+[dependencies]
+motion-core.workspace = true
+motion-nn.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+[dev-dependencies]
+motion-cpu.workspace = true
+
+[lints]
+workspace = true

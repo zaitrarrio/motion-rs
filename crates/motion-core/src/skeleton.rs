@@ -127,7 +127,9 @@ impl Skeleton {
             "g1skel34",
             G1_BONES,
             &assets::G1SKEL34_JOINTS,
-            Some(&assets::G1SKEL34_REST_POSE_LOCAL_ROT),
+            // Kimodo stores `rest_pose_local_rot.p` but its FK reads `rest_local_rots`,
+            // which no skeleton defines: the rest rotations are never applied.
+            None,
             &["left_ankle_roll_skel", "left_toe_base"],
             &["right_ankle_roll_skel", "right_toe_base"],
             &["left_wrist_yaw_skel", "left_hand_roll_skel"],
@@ -361,6 +363,12 @@ pub fn soma77_from_standard_tpose(local_rots: &[f32], skel77: &Skeleton) -> (Vec
         );
     }
     change_tpose(local_rots, &t, skel77)
+}
+
+/// The G1 rest-pose local rotations `[34, 9]` (`g1skel34/rest_pose_local_rot.p`),
+/// for callers that want the MuJoCo XML rest orientation.
+pub fn g1_rest_pose_local_rot() -> &'static [f32] {
+    &assets::G1SKEL34_REST_POSE_LOCAL_ROT
 }
 
 /// The BVH rest-pose joints of SOMA 77 (`bvh_joints.p`), `[77, 3]`.
