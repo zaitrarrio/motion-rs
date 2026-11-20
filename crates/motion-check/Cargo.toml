@@ -1,0 +1,15 @@
+[package]
+name = "motion-check"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Conformance of a motion-rs backend against the CPU reference: every op of motion_core::Backend, then a tiny Kimodo sampling run."
+
+[dependencies]
+motion-core.workspace = true
+motion-cpu.workspace = true
+motion-kimodo.workspace = true
+
+[lints]
+workspace = true

@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn erf_matches_known_values() {
         assert!((erf(0.5) - 0.520_499_877_813_046_5).abs() < 1e-12);
-        assert!((erf(2.5) - 0.999_593_047_982_555_0).abs() < 1e-12);
+        assert!((erf(2.5) - 0.999_593_047_982_555).abs() < 1e-12);
         assert!((erf(-1.0) + 0.842_700_792_949_714_9).abs() < 1e-12);
     }
 

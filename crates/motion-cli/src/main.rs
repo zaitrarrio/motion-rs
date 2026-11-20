@@ -10,6 +10,7 @@ mod serve;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use motion_core::backend::Backend;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -45,30 +46,57 @@ enum Cmd {
     Encode(encode_cmd::EncodeArgs),
     /// The Motion Studio: a local web page for both models.
     Serve(serve::ServeArgs),
+    /// Compare every backend op, and a tiny Kimodo run, with the CPU reference.
+    Check,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let be = motion_cpu::Cpu;
-    match cli.cmd {
-        Cmd::Download { name, out, include, list } => {
-            if list || name.is_none() {
-                for (k, repo, what) in download::KNOWN {
-                    println!("{k:22} {repo:58} {what}");
-                }
-                return Ok(());
+    if let Cmd::Download { name, out, include, list } = cli.cmd {
+        if list || name.is_none() {
+            for (k, repo, what) in download::KNOWN {
+                println!("{k:22} {repo:58} {what}");
             }
-            let name = name.expect("checked");
-            let repo = download::resolve_repo(&name);
-            let out = out.unwrap_or_else(|| PathBuf::from("weights").join(repo.rsplit('/').next().unwrap_or(&repo)));
-            eprintln!("{repo} → {}", out.display());
-            let files = download::snapshot(&repo, &out, &include)?;
-            eprintln!("{} files", files.len());
-            Ok(())
+            return Ok(());
         }
+        let name = name.expect("checked");
+        let repo = download::resolve_repo(&name);
+        let out = out.unwrap_or_else(|| PathBuf::from("weights").join(repo.rsplit('/').next().unwrap_or(&repo)));
+        eprintln!("{repo} → {}", out.display());
+        let files = download::snapshot(&repo, &out, &include)?;
+        eprintln!("{} files", files.len());
+        return Ok(());
+    }
+    match cli.backend {
+        backend::BackendKind::Cpu => run(motion_cpu::Cpu, cli.cmd),
+        backend::BackendKind::Wgpu => {
+            let be = motion_wgpu::Wgpu::new().map_err(|e| anyhow::anyhow!("WebGPU: {e}"))?;
+            if be.is_software() {
+                eprintln!("note: {} is a CPU rasterizer: fine for checks, meaningless for timing", be.name());
+            }
+            run(be, cli.cmd)
+        }
+    }
+}
+
+fn run<B>(be: B, cmd: Cmd) -> Result<()>
+where
+    B: Backend + Send + 'static,
+    B::Buf: Send,
+    B::Weight: Send,
+{
+    match cmd {
+        Cmd::Download { .. } => unreachable!("handled before a backend is made"),
         Cmd::Generate(a) => kimodo_cmd::run(&be, &a),
         Cmd::Inbetween(a) => bricks_cmd::run(&be, &a),
         Cmd::Encode(a) => encode_cmd::run(&be, &a),
         Cmd::Serve(a) => serve::run(be, a),
+        Cmd::Check => {
+            eprintln!("{} against the CPU reference", be.name());
+            let (text, ok) = motion_check::report(&motion_check::run_all(&be));
+            print!("{text}");
+            anyhow::ensure!(ok, "the backend differs from the CPU reference");
+            Ok(())
+        }
     }
 }

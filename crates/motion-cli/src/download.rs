@@ -64,13 +64,12 @@ pub fn snapshot(repo: &str, out: &Path, include: &[String]) -> Result<Vec<PathBu
             continue;
         }
         let dst = out.join(&s.rfilename);
-        if let (Ok(meta), Some(size)) = (std::fs::metadata(&dst), s.size) {
-            if meta.len() == size {
+        if let (Ok(meta), Some(size)) = (std::fs::metadata(&dst), s.size)
+            && meta.len() == size {
                 eprintln!("  have {}", s.rfilename);
                 done.push(dst);
                 continue;
             }
-        }
         if let Some(parent) = dst.parent() {
             std::fs::create_dir_all(parent)?;
         }

@@ -13,3 +13,7 @@ rayon.workspace = true
 [lints.rust]
 # One `unsafe` block: the GEMM tasks write disjoint output elements through a shared pointer.
 unsafe_code = "deny"
+
+[lints.clippy]
+too_many_arguments = "allow"
+needless_range_loop = "allow"

@@ -7,6 +7,8 @@ members = [
     "crates/motion-bricks",
     "crates/motion-kimodo",
     "crates/motion-text",
+    "crates/motion-wgpu",
+    "crates/motion-check",
     "crates/motion-cli",
 ]
 
@@ -42,7 +44,14 @@ tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
 ureq = "2"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# Denied, not forbidden: the safetensors mmap and the CPU GEMM allow it locally.
+unsafe_code = "deny"
+
+# Kernel-shaped code: ops take shapes and offsets as arguments, and index
+# loops over several arrays at once read closer to the PyTorch they port.
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+needless_range_loop = "allow"
 
 [profile.release]
 opt-level = 3

@@ -13,7 +13,7 @@ pollster.workspace = true
 wgpu.workspace = true
 
 [dev-dependencies]
-motion-check = { path = "../motion-check" }
+motion-check.workspace = true
 motion-cpu.workspace = true
 
 [lints]

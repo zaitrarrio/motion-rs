@@ -431,11 +431,10 @@ where
     if kimodo.is_none() && bricks.is_none() {
         return Err(anyhow!("nothing to serve: pass --kimodo-dir and/or --bricks-dir, or --synthetic"));
     }
-    if let Some(b) = &bricks {
-        if b.cfg.rig != motion_bricks::Rig::Soma {
+    if let Some(b) = &bricks
+        && b.cfg.rig != motion_bricks::Rig::Soma {
             return Err(anyhow!("the studio drives the SOMA MotionBricks model (soma/), not G1"));
         }
-    }
     let emb = a.embeddings.as_ref().map(|p| Embeddings::load(p)).transpose()?;
     let encoder = match (&a.llama_dir, a.synthetic) {
         (Some(d), false) => Some(TextEncoder::load(d, &a.adapters).context("loading the text encoder")?),
@@ -503,14 +502,13 @@ where
     for req in server.incoming_requests() {
         let origin = req.headers().iter().find(|h| h.field.equiv("Origin")).map(|h| h.value.as_str().to_string());
         let mut cors = Vec::new();
-        if let (Some(allow), Some(o)) = (&a.allow_origin, &origin) {
-            if o == allow {
+        if let (Some(allow), Some(o)) = (&a.allow_origin, &origin)
+            && o == allow {
                 cors.push(header("Access-Control-Allow-Origin", o));
                 cors.push(header("Access-Control-Allow-Headers", "Content-Type"));
                 cors.push(header("Access-Control-Allow-Private-Network", "true"));
                 cors.push(header("Vary", "Origin"));
             }
-        }
         let url = req.url().to_string();
         let path = url.split('?').next().unwrap_or("").to_string();
         let method = req.method().clone();

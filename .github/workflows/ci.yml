@@ -59,7 +59,7 @@ jobs:
         run: cargo test --workspace --locked --no-fail-fast 2>&1 | tee test.log
       - name: the WebGPU suite ran on lavapipe, not skipped
         run: |
-          if grep -q '^skipping:' test.log; then
-            echo 'a WebGPU test skipped: no usable Vulkan adapter'; grep '^skipping:' test.log; exit 1
+          if grep -q '^skipped:' test.log; then
+            echo 'a WebGPU test skipped: no usable Vulkan adapter'; grep '^skipped:' test.log; exit 1
           fi
           grep -E '^test result' test.log
