@@ -214,7 +214,8 @@ mod tests {
         let be = Cpu;
         let src = Synthetic::new(1);
         let layer = EncoderLayer::load(&be, &src, "layers.0", 16, 4, 32, Act::Relu, 1e-5).unwrap();
-        let x0: Vec<f32> = (0..2 * 5 * 16).map(|i| ((i * 7) % 13) as f32 * 0.1 - 0.5).collect();
+        let one: Vec<f32> = (0..5 * 16).map(|i| ((i * 7) % 13) as f32 * 0.1 - 0.5).collect();
+        let x0: Vec<f32> = one.iter().chain(one.iter()).copied().collect();
         // Batch 0 and batch 1 identical except in the last (masked) token.
         let mut x1 = x0.clone();
         for v in &mut x1[4 * 16..5 * 16] {
